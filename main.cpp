@@ -39,6 +39,9 @@ LoWPANNDInterface mesh;
 #define MESH
 #include "NanostackInterface.h"
 ThreadInterface mesh;
+#elif MBED_CONF_APP_NETWORK_INTERFACE == CELL
+#include "MTSASInterface.h"
+MTSASInterface cell(RADIO_TX, RADIO_RX);
 #endif
 
 #if defined(MESH)
@@ -393,6 +396,11 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     output.printf("Using Ethernet\r\n");
     connect_success = eth.connect();
     network_interface = &eth;
+#elif MBED_CONF_APP_NETWORK_INTERFACE == CELL
+    output.printf("Using Cell\r\n");
+    static const char apn[] = "wap.cingular";
+    connect_success = cell.connect(apn);
+    network_interface = &cell;
 #endif
 #ifdef MESH
     output.printf("Using Mesh\r\n");
@@ -429,7 +437,7 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     obs_button.fall(&button_clicked);
 #else
     // Send update of endpoint resource values to connector every 15 seconds periodically
-    timer.attach(&button_clicked, 15.0);
+    //timer.attach(&button_clicked, 15.0);
 #endif
 
     // Create endpoint interface to manage register and unregister
@@ -459,7 +467,7 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
         updates.wait(25000);
         if(registered) {
             if(!clicked) {
-                mbed_client.test_update_register();
+                //mbed_client.test_update_register();
             }
         }else {
             break;
