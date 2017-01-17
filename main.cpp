@@ -58,21 +58,15 @@ volatile bool clicked = false;
 osThreadId mainThread;
 
 void handle_edimax_data(struct edimax_data data){
+    output.printf("data!\r\n");
     airbox_resource.update_sensors(data);
 }
 
 void handle_gps(){
-    char* latitude =(char *)malloc(256);
-    char* longitude =(char *)malloc(256);
-    char* UTC =(char *)malloc(256);
-    char* altitude =(char *)malloc(256);
-    bool res = cell.get_gps_location(UTC, latitude, longitude, altitude);
-    output.printf("\n\rlat: %s, long: %s\r\n", latitude, longitude);
-    airbox_resource.update_gps(latitude, longitude);
-    free(latitude);
-    free(longitude);
-    free(UTC);
-    free(altitude);
+    struct gps_data data;
+    data = cell.get_gps_location();
+    output.printf("\n\rlat: %s, long: %s\r\n", data.latitude, data.longitude);
+    airbox_resource.update_gps(data.latitude, data.longitude);
 }
 
 void unregister() {

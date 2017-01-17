@@ -26,6 +26,7 @@ Edimax::Edimax(PinName tx, PinName rx, Callback<void(edimax_data)> func)
     _serial.baud(9600);
     _parser.setDelimiter("\n");
     _parser.setTimeout(3000);
+    _parser.debugOn(1);
     //Attach a serial callback on serial RX
     _serial.attach(callback(this, &Edimax::rx_sem_release));
     listen_serial_data.start(callback(this, &Edimax::handle_serial_data));
