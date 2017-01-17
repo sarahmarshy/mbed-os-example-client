@@ -24,20 +24,18 @@ public:
     }
 
     void update_sensors(struct edimax_data data){
-        sprintf(edimax_sensors, "t:%f, h:%f, p10:%lu, p25:%lu, p100:%lu", data.temp, data.humidity, data.pm10, data.pm25, data.pm100);           
-        update_res_value();
+        sprintf(edimax_sensors, "t:%.1f, h:%.1f, p10:%lu, p25:%lu, p100:%lu", data.temp, data.humidity, data.pm10, data.pm25, data.pm100);           
     }
     
     void update_gps(char* lat, char* longi){
         strcpy(latitude, lat);
         strcpy(longitude, longi);
-        update_res_value();
     }
     
     void update_res_value(){
         M2MObjectInstance* inst = resource_object->object_instance();
         M2MResource* res = inst->resource("5700");
-        char buffer[115];
+        char buffer[200];
         int size = sprintf(buffer, "%s, lat:%s, lon:%s", edimax_sensors, latitude, longitude);
         res->set_value((uint8_t*)buffer, size);
     }
@@ -45,7 +43,7 @@ private:
     M2MObject* resource_object;
     char latitude[25];
     char longitude[25];
-    char edimax_sensors[50];
+    char edimax_sensors[150];
 };
 
 #endif
