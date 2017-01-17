@@ -158,23 +158,23 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     // Register with mbed Device Connector
     mbed_client.test_register(register_object, object_list);
     registered = true;
-    //TODO: Find out how to handle gps without interrupting client connection
-    /**
-    output.printf("Spawning gps thread\r\n");
-    Thread gps_thread;
-    gps_thread.start(callback(&handle_gps));
-    gps_thread.join();
-    **/
-    //Calls handle_edimax data on serial RX event
-    edimax.listen(handle_edimax_data);
-    bool start = false; 
+    bool sensor_monitor = false;
+    bool gps_monitor = false;
     while (true) {
         updates.wait(25000);
-        if(registered) {
-            //TODO: Find out if we can do this only w/ GET request
+        if (mbed_client.is_registered()){
             airbox_resource.update_res_value();
-        }else {
-            break;
+            if (!sensor_monitor){
+                //Calls handle_edimax data on serial RX event
+                edimax.listen(handle_edimax_data);
+                sensor_monitor = true;
+            }
+            if (!gps_monitor){
+                Thread gps_thread;
+                gps_thread.start(callback(&handle_gps));
+                gps_monitor = true;
+            }
+
         }
     }
 

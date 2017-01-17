@@ -227,6 +227,10 @@ public:
         _unregistered = false;
         trace_printer("Registered object successfully!");
     }
+    
+    bool is_registered(){
+        return _registered;
+   }
 
     //Callback from mbed client stack when the unregistration
     // is successful, it returns the mbed Device Server object
