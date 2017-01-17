@@ -19,22 +19,30 @@
 /** Edimax class 
 */
 
-Edimax::Edimax(PinName tx, PinName rx, Callback<void(edimax_data)> func)
-    : _serial(tx, rx, 1024), _parser(_serial)
+Edimax::Edimax(PinName tx, PinName rx)
+    : _serial(tx, rx, 1024)
 {
-    _func = func;
     _serial.baud(9600);
-    _parser.setDelimiter("\n");
-    _parser.setTimeout(3000);
-    _parser.debugOn(1);
-    //Attach a serial callback on serial RX
-    _serial.attach(callback(this, &Edimax::rx_sem_release));
-    listen_serial_data.start(callback(this, &Edimax::handle_serial_data));
 }
 
 Edimax::~Edimax(){
 }
 
+void Edimax::listen(Callback<void (edimax_data)> func)
+{
+    _func = func;
+    _serial.attach(callback(this, &Edimax::rx_sem_release));
+    listen_serial_data.start(callback(this, &Edimax::handle_serial_data));
+}
+
+void Edimax::read_line(char* buffer){
+    char c = _serial.getc();
+    int i = 0;
+    while(c != '\n'){
+        buffer[i++] = c;
+        c = _serial.getc();
+    }
+}
 void Edimax::rx_sem_release(){
     rx_sem.release();
 }
@@ -46,8 +54,10 @@ void Edimax::handle_serial_data()
         rx_sem.wait();
         struct edimax_data data;
         //Read the data
-        data_recvd = _parser.recv("%.1f/%.1f%% PM10:%d PM25:%d PM100:%d", &data.temp, &data.humidity, &data.pm10, &data.pm25, &data.pm100);
-        //Call our callback (passed in constructor)
+        char buff[150];
+        read_line(buff);
+        sscanf(buff,"%f/%f%% PM10:%lu PM25:%lu PM100:%lu", &data.temp, &data.humidity, &data.pm10, &data.pm25, &data.pm100);
+        //Call our callback
         _func(data); 
    }
 }

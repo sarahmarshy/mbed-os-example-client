@@ -29,7 +29,7 @@
 #include "edimax.h"
 MTSASInterface cell(RADIO_TX, RADIO_RX);
 AirBoxResource airbox_resource;
-
+Edimax edimax(D1, D0);
 #ifndef MESH
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coap://api.connector.mbed.com:5684"
@@ -58,7 +58,6 @@ volatile bool clicked = false;
 osThreadId mainThread;
 
 void handle_edimax_data(struct edimax_data data){
-    output.printf("data!\r\n");
     airbox_resource.update_sensors(data);
 }
 
@@ -139,9 +138,6 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     } else {
         output.printf("No IP address\r\n");
     }
-    output.printf("\n\rObtaining first GPS fix. Can take up to two minutes... \r\n");
-    handle_gps();
-    
     mbed_client.create_interface(MBED_SERVER_ADDRESS, network_interface);
 
     // Create Objects of varying types, see simpleclient.h for more details on implementation.
@@ -162,14 +158,21 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     // Register with mbed Device Connector
     mbed_client.test_register(register_object, object_list);
     registered = true;
+    //TODO: Find out how to handle gps without interrupting client connection
+    /**
+    output.printf("Spawning gps thread\r\n");
+    Thread gps_thread;
+    gps_thread.start(callback(&handle_gps));
+    gps_thread.join();
+    **/
     //Calls handle_edimax data on serial RX event
-    Edimax(SERIAL_TX, SERIAL_RX, handle_edimax_data);
+    edimax.listen(handle_edimax_data);
+    bool start = false; 
     while (true) {
         updates.wait(25000);
         if(registered) {
-            if(!clicked) {
-                //mbed_client.test_update_register();
-            }
+            //TODO: Find out if we can do this only w/ GET request
+            airbox_resource.update_res_value();
         }else {
             break;
         }

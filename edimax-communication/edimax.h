@@ -18,9 +18,7 @@
 #define EDIMAX_H
 
 #include "mbed.h"
-//class ATParser;
-#include "ATParser.h" 
-
+#include "BufferedSerial.h"
 /** Edimax class 
 */
 struct edimax_data{
@@ -34,16 +32,16 @@ struct edimax_data{
 class Edimax
 {
     public:
-        Edimax(PinName tx, PinName rx, Callback<void(edimax_data)> func);
+        Edimax(PinName tx, PinName rx);
         ~Edimax();
+        void listen(Callback<void (edimax_data)> func);
     private:
-        
+        void read_line(char* buffer);
         Callback<void(edimax_data)> _func;
         Semaphore rx_sem;
         bool data_recvd;
         Thread listen_serial_data;
         BufferedSerial _serial;
-        ATParser _parser;
         void rx_sem_release();
         void handle_serial_data();
         edimax_data *_data;
