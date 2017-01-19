@@ -43,8 +43,6 @@ Edimax edimax(D1, D0);
 #define MBED_SERVER_ADDRESS "coaps://[2607:f0d0:2601:52::20]:5684"
 #endif
 
-EventQueue gps_queue;
-
 
 RawSerial output(USBTX, USBRX);
 
@@ -64,7 +62,6 @@ Semaphore updates(0);
 volatile bool registered = false;
 volatile bool clicked = false;
 osThreadId mainThread;
-void add_gps_event();
 
 void handle_edimax_data(struct edimax_data data){
     temp_obj.update_value("%3.2f", data.temp);
@@ -73,16 +70,13 @@ void handle_edimax_data(struct edimax_data data){
 }
 
 void handle_gps(){
-    printf("GPS event!");
     struct gps_data data;
-    data = cell.get_gps_location();
-    gps_obj.update_value("%s,%s", data.latitude, data.longitude);
-    add_gps_event();
+    while(true){
+        data = cell.get_gps_location();
+        gps_obj.update_value("%s,%s", data.latitude, data.longitude);
+    }
 }
 
-void add_gps_event(){
-    gps_queue.call(handle_gps);
-}
 
 void unregister() {
     registered = false;
@@ -188,9 +182,8 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
                 sensor_monitor = true;
             }
             if (!gps_monitor){
-                add_gps_event();
-                gps_queue.dispatch();
-                gps_monitor = true;
+                Thread gps_thread;
+                gps_thread.start(callback(&handle_gps));
             }
 
         }
