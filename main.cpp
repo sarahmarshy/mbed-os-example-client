@@ -28,7 +28,12 @@
 #include "MTSASInterface.h"
 #include "edimax.h"
 MTSASInterface cell(RADIO_TX, RADIO_RX);
-AirBoxResource airbox_resource;
+AirBoxResource temp_obj("3303", "5700", "Temperature", M2MResourceInstance::FLOAT);
+AirBoxResource humidity_obj("3304", "5700", "Humidity", M2MResourceInstance::FLOAT);
+AirBoxResource air_obj("3305", "5700", "Air", M2MResourceInstance::STRING);
+AirBoxResource gps_obj("4000", "5700", "GPS", M2MResourceInstance::STRING);
+AirBoxResource alias_obj("4001", "5700", "alias", M2MResourceInstance::STRING);
+
 Edimax edimax(D1, D0);
 #ifndef MESH
 // This is address to mbed Device Connector
@@ -37,6 +42,9 @@ Edimax edimax(D1, D0);
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coaps://[2607:f0d0:2601:52::20]:5684"
 #endif
+
+EventQueue gps_queue;
+
 
 RawSerial output(USBTX, USBRX);
 
@@ -56,16 +64,24 @@ Semaphore updates(0);
 volatile bool registered = false;
 volatile bool clicked = false;
 osThreadId mainThread;
+void add_gps_event();
 
 void handle_edimax_data(struct edimax_data data){
-    airbox_resource.update_sensors(data);
+    temp_obj.update_value("%3.2f", data.temp);
+    humidity_obj.update_value("%3.2f", data.humidity);
+    air_obj.update_value("%lu,%lu,%lu", data.pm10, data.pm25, data.pm100);
 }
 
 void handle_gps(){
+    printf("GPS event!");
     struct gps_data data;
     data = cell.get_gps_location();
-    output.printf("\n\rlat: %s, long: %s\r\n", data.latitude, data.longitude);
-    airbox_resource.update_gps(data.latitude, data.longitude);
+    gps_obj.update_value("%s,%s", data.latitude, data.longitude);
+    add_gps_event();
+}
+
+void add_gps_event(){
+    gps_queue.call(handle_gps);
 }
 
 void unregister() {
@@ -149,8 +165,11 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
 
     // Add objects to list
     object_list.push_back(device_object);
-    object_list.push_back(airbox_resource.get_object());
-
+    object_list.push_back(temp_obj.get_object());
+    object_list.push_back(humidity_obj.get_object());
+    object_list.push_back(air_obj.get_object());
+    object_list.push_back(gps_obj.get_object());
+    object_list.push_back(alias_obj.get_object());
 
     // Set endpoint registration object
     mbed_client.set_register_object(register_object);
@@ -163,15 +182,14 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     while (true) {
         updates.wait(25000);
         if (mbed_client.is_registered()){
-            airbox_resource.update_res_value();
             if (!sensor_monitor){
                 //Calls handle_edimax data on serial RX event
                 edimax.listen(handle_edimax_data);
                 sensor_monitor = true;
             }
             if (!gps_monitor){
-                Thread gps_thread;
-                gps_thread.start(callback(&handle_gps));
+                add_gps_event();
+                gps_queue.dispatch();
                 gps_monitor = true;
             }
 

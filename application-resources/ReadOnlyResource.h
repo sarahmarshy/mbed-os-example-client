@@ -1,19 +1,21 @@
-#include "simpleclient.h"
-#include "edimax.h"
 #ifndef READ_ONLY_INTERFACE_H
 #define READ_ONLY_INTERFACE_H
+#include "simpleclient.h"
+#include "edimax.h"
+#include <cstdarg>
 
 class AirBoxResource {
 public:
-    AirBoxResource() 
+    AirBoxResource(char* object_id, char* resource_id, char* resource_name, M2MResourceInstance::ResourceType type) 
     {
        
-        strcpy(edimax_sensors, "t:-1, h:-1, p10:-1, p25:-1, p100:-1");
-        resource_object = M2MInterfaceFactory::create_object("3303");
+        resource_object = M2MInterfaceFactory::create_object(object_id);
         M2MObjectInstance* resource_inst = resource_object->create_object_instance();
-        M2MResource* res = resource_inst->create_dynamic_resource("5700", "AirBoxData", M2MResourceInstance::STRING, true);
+        M2MResource* res = resource_inst->create_dynamic_resource(resource_id, resource_name, type, true);
         res->set_operation(M2MBase::GET_ALLOWED);
-        update_res_value();
+        strcpy(obj_id, object_id);
+        strcpy(res_id, resource_id);
+        update_value("%s","None");
     }
 
     
@@ -23,27 +25,20 @@ public:
         return resource_object;
     }
 
-    void update_sensors(struct edimax_data data){
-        sprintf(edimax_sensors, "t:%.1f, h:%.1f, p10:%lu, p25:%lu, p100:%lu", data.temp, data.humidity, data.pm10, data.pm25, data.pm100);           
-    }
-    
-    void update_gps(char* lat, char* longi){
-        strcpy(latitude, lat);
-        strcpy(longitude, longi);
-    }
-    
-    void update_res_value(){
+    void update_value(const char* format, ...){
         M2MObjectInstance* inst = resource_object->object_instance();
-        M2MResource* res = inst->resource("5700");
-        char buffer[200];
-        int size = sprintf(buffer, "%s, lat:%s, lon:%s", edimax_sensors, latitude, longitude);
+        M2MResource* res = inst->resource(res_id);
+        char buffer[256];
+        va_list args;
+        va_start(args, format);
+        int size = vsprintf(buffer, format, args);
+        va_end(args);
         res->set_value((uint8_t*)buffer, size);
     }
 private:
+    char obj_id[5];
+    char res_id[5];
     M2MObject* resource_object;
-    char latitude[25];
-    char longitude[25];
-    char edimax_sensors[150];
 };
 
 #endif
