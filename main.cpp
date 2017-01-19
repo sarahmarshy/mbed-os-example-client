@@ -73,6 +73,7 @@ void handle_gps(){
     struct gps_data data;
     while(true){
         data = cell.get_gps_location();
+        printf("GPS fix attained lat: %s, lon: %s", data.latitude, data.longitude);
         gps_obj.update_value("%s,%s", data.latitude, data.longitude);
     }
 }
