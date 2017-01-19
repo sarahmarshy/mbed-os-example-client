@@ -54,10 +54,12 @@ void Edimax::handle_serial_data()
         rx_sem.wait();
         struct edimax_data data;
         //Read the data
-        char buff[150];
+        char* buff;
+        buff = (char *)malloc(sizeof(char) * 150); 
         read_line(buff);
         sscanf(buff,"%f/%f%% PM10:%lu PM25:%lu PM100:%lu", &data.temp, &data.humidity, &data.pm10, &data.pm25, &data.pm100);
         //Call our callback
+        free(buff);
         _func(data); 
    }
 }

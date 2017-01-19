@@ -44,7 +44,7 @@ class Edimax
         BufferedSerial _serial;
         void rx_sem_release();
         void handle_serial_data();
-        edimax_data *_data;
+        edimax_data _data;
 };
 
 #endif 

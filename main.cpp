@@ -33,16 +33,9 @@ AirBoxResource humidity_obj("3304", "5700", "Humidity", M2MResourceInstance::FLO
 AirBoxResource air_obj("3305", "5700", "Air", M2MResourceInstance::STRING);
 AirBoxResource gps_obj("4000", "5700", "GPS", M2MResourceInstance::STRING);
 AirBoxResource alias_obj("4001", "5700", "alias", M2MResourceInstance::STRING);
-
 Edimax edimax(D1, D0);
-#ifndef MESH
 // This is address to mbed Device Connector
 #define MBED_SERVER_ADDRESS "coap://api.connector.mbed.com:5684"
-#else
-// This is address to mbed Device Connector
-#define MBED_SERVER_ADDRESS "coaps://[2607:f0d0:2601:52::20]:5684"
-#endif
-
 
 RawSerial output(USBTX, USBRX);
 
@@ -70,22 +63,25 @@ void handle_edimax_data(struct edimax_data data){
 }
 
 void handle_gps(){
+    output.printf("Thread start\r\n");
     struct gps_data data;
     while(true){
         data = cell.get_gps_location();
-        printf("GPS fix attained lat: %s, lon: %s", data.latitude, data.longitude);
+        output.printf("GPS fix attained lat: %s, lon: %s\r\n", data.latitude, data.longitude);
         gps_obj.update_value("%s,%s", data.latitude, data.longitude);
     }
 }
 
+void one_time_gps(){
+    output.printf("Attaining GPS coords\r\n");
+    struct gps_data data;
+    data = cell.get_gps_location();
+    output.printf("GPS fix attained lat: %s, lon: %s\r\n", data.latitude, data.longitude);
+    gps_obj.update_value("%s,%s", data.latitude, data.longitude);
+}
 
 void unregister() {
     registered = false;
-    updates.release();
-}
-
-void button_clicked() {
-    clicked = true;
     updates.release();
 }
 
@@ -93,7 +89,6 @@ void button_clicked() {
 void trace_printer(const char* str) {
     printf("%s\r\n", str);
 }
-
 
 
 // Entry point to the program
@@ -149,6 +144,7 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     } else {
         output.printf("No IP address\r\n");
     }
+    one_time_gps();
     mbed_client.create_interface(MBED_SERVER_ADDRESS, network_interface);
 
     // Create Objects of varying types, see simpleclient.h for more details on implementation.
@@ -172,22 +168,13 @@ Add MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES and MBEDTLS_TEST_NULL_ENTROPY in mbed_app
     // Register with mbed Device Connector
     mbed_client.test_register(register_object, object_list);
     registered = true;
-    bool sensor_monitor = false;
-    bool gps_monitor = false;
+    while(!mbed_client.is_registered()){}  
+    edimax.listen(handle_edimax_data);
+    //Thread gps_thread;
+    //gps_thread.start(callback(&handle_gps));
     while (true) {
         updates.wait(25000);
-        if (mbed_client.is_registered()){
-            if (!sensor_monitor){
-                //Calls handle_edimax data on serial RX event
-                edimax.listen(handle_edimax_data);
-                sensor_monitor = true;
-            }
-            if (!gps_monitor){
-                Thread gps_thread;
-                gps_thread.start(callback(&handle_gps));
-            }
-
-        }
+        mbed_client.test_update_register();
     }
 
     mbed_client.test_unregister();
