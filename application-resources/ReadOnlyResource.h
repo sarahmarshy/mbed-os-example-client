@@ -27,12 +27,15 @@ public:
 
     void update_value(const char* format, ...){
         M2MObjectInstance* inst = resource_object->object_instance();
+        MBED_ASSERT(inst != NULL);
         M2MResource* res = inst->resource(res_id);
+        MBED_ASSERT(res != NULL);
         char* buffer;
         buffer = (char *)malloc(sizeof(char) * 256);
+        MBED_ASSERT(buffer != NULL);
         va_list args;
         va_start(args, format);
-        int size = vsprintf(buffer, format, args);
+        int size = vsnprintf(buffer, 256, format, args);
         va_end(args);
         res->set_value((uint8_t*)buffer, size);
         free(buffer);
