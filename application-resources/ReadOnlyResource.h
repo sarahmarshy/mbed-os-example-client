@@ -6,14 +6,13 @@
 
 class AirBoxResource {
 public:
-    AirBoxResource(char* object_id, char* resource_id, char* resource_name, M2MResourceInstance::ResourceType type) 
+    AirBoxResource(const char* object_id, const char* resource_id, const char* resource_name, M2MResourceInstance::ResourceType type) 
     {
        
         resource_object = M2MInterfaceFactory::create_object(object_id);
         M2MObjectInstance* resource_inst = resource_object->create_object_instance();
         M2MResource* res = resource_inst->create_dynamic_resource(resource_id, resource_name, type, true);
         res->set_operation(M2MBase::GET_ALLOWED);
-        strcpy(obj_id, object_id);
         strcpy(res_id, resource_id);
         update_value("%s","None");
     }
@@ -41,7 +40,6 @@ public:
         free(buffer);
     }
 private:
-    char obj_id[5];
     char res_id[5];
     M2MObject* resource_object;
 };
