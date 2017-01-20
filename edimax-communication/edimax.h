@@ -36,7 +36,9 @@ class Edimax
         ~Edimax();
         void listen(Callback<void (edimax_data)> func);
     private:
-        void read_line(char* buffer);
+        int getc();
+        void flush();
+        int read_line(char* buffer);
         Callback<void(edimax_data)> _func;
         Semaphore rx_sem;
         bool data_recvd;

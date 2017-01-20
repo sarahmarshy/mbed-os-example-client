@@ -35,13 +35,39 @@ void Edimax::listen(Callback<void (edimax_data)> func)
     listen_serial_data.start(callback(this, &Edimax::handle_serial_data));
 }
 
-void Edimax::read_line(char* buffer){
-    char c = _serial.getc();
+int Edimax::getc()
+{
+    Timer timer;
+    timer.start();
+
+    while (true) {
+        if (_serial.readable()) {
+            return _serial.getc();
+        }
+        if (timer.read_ms() > 1000) {
+            return -1;
+        }
+    }
+}
+
+void Edimax::flush()
+{
+    while (_serial.readable()) {
+        _serial.getc();
+    }
+}
+
+int Edimax::read_line(char* buffer){
+    int c = getc();
     int i = 0;
     while(c != '\n'){
+        if(c < 0){
+            return -1;
+        }
         buffer[i++] = c;
-        c = _serial.getc();
+        c = getc();
     }
+    return 0;
 }
 void Edimax::rx_sem_release(){
     rx_sem.release();
@@ -56,7 +82,14 @@ void Edimax::handle_serial_data()
         //Read the data
         char* buff;
         buff = (char *)malloc(sizeof(char) * 150); 
-        read_line(buff);
+        
+        MBED_ASSERT(buff != NULL);
+        int res = read_line(buff);
+        flush();
+        if (res < 0){
+            free(buff);
+            continue;
+        }
         sscanf(buff,"%f/%f%% PM10:%lu PM25:%lu PM100:%lu", &data.temp, &data.humidity, &data.pm10, &data.pm25, &data.pm100);
         //Call our callback
         free(buff);
