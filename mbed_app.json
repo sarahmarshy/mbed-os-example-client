@@ -2,7 +2,11 @@
     "config": {
         "network-interface":{
             "help": "Options are ETHERNET, WIFI_ESP8266, WIFI_ODIN, MESH_LOWPAN_ND, MESH_THREAD",
-            "value": "ETHERNET"
+            "value": "CELL"
+        },
+        "APN":{
+            "help" : "APN for cellular network",
+            "value" : "\"wap.cingular\""
         },
         "mesh_radio_type": {
         	"help": "options are ATMEL, MCR20, SPIRIT1",
